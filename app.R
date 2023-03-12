@@ -12,6 +12,7 @@ library(sp)
 library(ggplot2)
 library(ggforce)
 library(leaflet)
+library(lwgeom)
 
 # Carregar Poligonos
 cnsa <- st_read("http://portal.iphan.gov.br/geoserver/ows?service=wfs&version=2.0.0&request=GetFeature&typename=SICG%3Asitios_pol&srsName=EPSG%3A4674")
@@ -26,7 +27,7 @@ cnsa$diametro <- 2*sqrt(cnsa$area/pi)
 ui <- fluidPage(
   
   # Application title
-  titlePanel(title=div(img(src="title.png", width="100"),"Arq_CalDetect")),
+  titlePanel(title=tags$div(img(src="title.png", width="100"), "Arq_CalDetect"),windowTitle ="Arq_CalDetect"),
   
   # Sidebar with a slider input
   sidebarLayout(
@@ -72,9 +73,9 @@ server <- function(input, output) {
     # Média local
     if (nrow(data_tmp)>0) {
       for (i in 1:nrow(data_tmp)) {
-      data_tmp$P[i] <- ifelse(((as.numeric(data_tmp$diametro[i])/2)/input$user_lim)*100 >100, 100, (as.numeric(data_tmp$diametro[i])/2)/input$user_lim*100)
-      data_tmp$count[i] <- 1
-    }
+        data_tmp$P[i] <- if (data_tmp$P[i] <- (pi*((as.numeric(data_tmp$diametro[i])^2))/(input$user_lim^2))*100 > 100) {100} else {(pi*((as.numeric(data_tmp$diametro[i])^2))/(input$user_lim^2))*100}
+        data_tmp$count[i] <- 1
+      }
     colnames(data_tmp)[18:20] <- c("Área", "Diâmetro", "Distância")
     x <- as.data.frame(table(cut(data_tmp$P,breaks=seq.int(from=min(data_tmp$P),to=max(data_tmp$P),by=1))))
     x$D <- seq(1,nrow(x),1)
@@ -87,7 +88,7 @@ server <- function(input, output) {
     
     p3 <- ggplot(x, aes(x=D, y=Freq)) + 
       geom_bar(stat="identity", aes(fill = D)) + 
-      scale_fill_gradientn(colours=c("darkred","white","darkgreen"), values=scales::rescale(c(min(data_tmp$P, na.rm=T),quantile(data_tmp$P)[2],median(data_tmp$P, na.rm=T),quantile(data_tmp$P)[4],max(data_tmp$P, na.rm=T)))) +
+      scale_fill_gradientn(colours=c("darkred","white", "yelow", "white","darkgreen"), values=scales::rescale(c(min(data_tmp$P, na.rm=T),quantile(data_tmp$P)[2],median(data_tmp$P, na.rm=T),quantile(data_tmp$P)[4],max(data_tmp$P, na.rm=T)))) +
       xlab("Probabilidades por sítio na área de busca") +
       ylab("Frequência")
     }
